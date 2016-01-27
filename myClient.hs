@@ -11,17 +11,14 @@ import System.IO
 main :: IO ()
 main = withSocketsDo $ do
 	args <- getArgs
-	case (length args) of
-		0 -> do (adr, port) <- return ("127.0.0.1", fromIntegral 60001)
-		1 -> do (adr, port) <- return ("127.0.0.1", fromIntegral $ read $ args !! 0)
-		_ -> do (adr, port) <- return (args !! 0, fromIntegral $ read $ args !! 0)
-	hdl <- connectTo adr port		
+	(adr, port) <- return $ getServ args
+	hdl <- connectTo adr $ PortNumber port
 	talk hdl `finally` hClose hdl
 
 talk :: Handle -> IO ()
 talk hdl = do
 	hSetNewlineMode hdl universalNewlineMode
-	hSetBuffering hdl NoBuffering
+	hSetBuffering hdl LineBuffering
 	_ <- race fromServer toServer
 	return ()
 	where
@@ -33,3 +30,7 @@ talk hdl = do
 		toServer = forever $ do
 			line <- (getLine >>= return . (++ [';']))
 			hPutStrLn hdl line
+
+getServ (arg1 : arg2 : []) = (arg1, fromInteger $ read arg2)
+getServ (arg1 : []) = ("127.0.0.1", fromInteger $ read arg1)
+getServ _ = ("127.0.0.1", fromInteger 60000)

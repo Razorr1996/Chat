@@ -1,23 +1,21 @@
 module Main where
 
-import GHC.IO.Encoding
-import Network.Socket
-import System.IO
-import System.Environment
-import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Exception
 import Control.Monad
 import Control.Monad.Fix (fix)
+import GHC.IO.Encoding
+import Network.Socket
+import System.Environment
+import System.IO
 
 type Msg = (Int, String)
 
 main :: IO ()
 main = withSocketsDo $ do
 	args <- getArgs
-	case (length args) of
-		0 -> let port = fromIntegral 60001
-		_ -> let port = fromIntegral $ read $ (args !! 0)
+	port <- return $ getServ args
 	chan <- atomically $ newTChan
 	sock <- socket AF_INET Stream 0
 	setSocketOption sock ReuseAddr 1
@@ -54,10 +52,10 @@ runConn (sock, _) chan nr = do
 			":q"	-> hPutStrLn hdl "Bye!"
 			_		-> do
 				broadcast (name ++ ": " ++ line)
-				{-let tmpMsg = (name ++ ": " ++ line)
-            	broadcast tmpMsg
-            	putStrLn tmpMsg-}
 				loop
 	killThread reader
 	broadcast ("<-- " ++ name ++ " left.")
 	hClose hdl
+
+getServ (arg : []) = fromInteger $ read arg
+getServ _ = fromInteger 60000
