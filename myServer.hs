@@ -5,6 +5,7 @@ import Control.Concurrent.STM
 import Control.Exception
 import Control.Monad
 import Control.Monad.Fix (fix)
+import Data.String.Unicode
 import GHC.IO.Encoding
 import Network.Socket
 import System.Environment
@@ -57,5 +58,6 @@ runConn (sock, _) chan nr = do
 	broadcast ("<-- " ++ name ++ " left.")
 	hClose hdl
 
-getServ (arg : []) = fromInteger $ read arg
+getServ :: Num a => [String] -> a
+getServ [arg] = fromInteger $ read arg
 getServ _ = fromInteger 60000
