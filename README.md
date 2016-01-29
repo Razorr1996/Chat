@@ -1,1 +1,1 @@
-# MyChat
+# Chat
