@@ -37,6 +37,7 @@ runConn :: (Socket, SockAddr) -> TChan Msg -> Int -> IO ()
 runConn (sock, _) chan nr = do
 	let broadcast msg = atomically $ writeTChan chan (nr, msg)
 	hdl <- socketToHandle sock ReadWriteMode
+	hSetEncoding hdl utf8
 	hSetBuffering hdl NoBuffering
 	hPutStrLn hdl "Hi, what's your name?"
 	name <- liftM init (hGetLine hdl)

@@ -14,6 +14,7 @@ main = withSocketsDo $ do
 	args <- getArgs
 	(adr, port) <- return $ getServ args
 	hdl <- connectTo adr $ PortNumber port
+	hSetEncoding hdl utf8
 	talk hdl `finally` hClose hdl
 
 talk :: Handle -> IO ()
