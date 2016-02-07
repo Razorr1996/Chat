@@ -37,10 +37,11 @@ runConn :: (Socket, SockAddr) -> TChan Msg -> Int -> IO ()
 runConn (sock, _) chan nr = do
 	let broadcast msg = atomically $ writeTChan chan (nr, msg)
 	hdl <- socketToHandle sock ReadWriteMode
+	hSetNewlineMode hdl universalNewlineMode
 	hSetEncoding hdl utf8
 	hSetBuffering hdl NoBuffering
 	hPutStrLn hdl "Hi, what's your name?"
-	name <- liftM init (hGetLine hdl)
+	name <- hGetLine hdl
 	broadcast ("--> " ++ name ++ " entered.")
 	hPutStrLn hdl ("Welcome, " ++ name ++ "!")
 	chan' <- atomically $ dupTChan chan
@@ -49,7 +50,7 @@ runConn (sock, _) chan nr = do
 		when (nr /= nr') $ hPutStrLn hdl line
 		loop
 	handle (\(SomeException _) -> return ()) $ fix $ \loop -> do
-		line <- liftM init (hGetLine hdl)
+		line <- hGetLine hdl
 		case line of
 			":q"	-> hPutStrLn hdl "Bye!"
 			_		-> do

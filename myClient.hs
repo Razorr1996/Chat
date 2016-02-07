@@ -30,7 +30,7 @@ talk hdl = do
 				"Bye!"	-> do return ()
 				_		-> do putStrLn line
 		toServer = forever $ do
-			line <- (getLine >>= return . (++ [';']))
+			line <- getLine
 			hPutStrLn hdl line
 
 getServ (arg1 : [arg2]) = (arg1, fromInteger $ read arg2)
