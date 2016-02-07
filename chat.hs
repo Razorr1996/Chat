@@ -68,8 +68,12 @@ newServer = do
 sendMessage :: Client -> Message -> STM ()
 sendMessage Client{..} msg = writeTChan clientSendChan msg
 
-broadcast :: Server -> Message -> STM ()
-broadcast Server{..} msg = do
+broadcast :: Server ->  Message -> STM ()
+broadcast server msg = broadcast' server Nothing msg
+
+
+broadcast' :: Server -> Maybe Client -> Message -> STM ()
+broadcast' Server{..} _ msg = do
 	clientmap <- readTVar clients
 	mapM_ (\client -> sendMessage client msg) (Map.elems clientmap)
 
@@ -91,7 +95,6 @@ removeClient server@Server{..} name = atomically $ do
 talk :: Handle -> Server -> IO ()
 talk handle server@Server{..} = do
   hSetNewlineMode handle universalNewlineMode
-	  -- Swallow carriage returns sent by telnet clients
   hSetBuffering handle LineBuffering
   readName
  where
@@ -134,7 +137,7 @@ runClient serv@Server{..} client@Client{..} = do
 handleMessage :: Server -> Client -> Message -> IO Bool
 handleMessage server client@Client{..} message =
 	case message of
-		Notice msg -> output $ "*** " ++ msg
+		Notice msg -> output $ "# " ++ msg
 		Tell name msg -> output $ "*" ++ name ++ "*: " ++ msg
 		Broadcast name msg -> output $ "<" ++ name ++ ">: " ++ msg
 		Command msg ->
