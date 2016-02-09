@@ -34,8 +34,8 @@ data Message 	= Notice String
 
 
 main :: IO ()
-main = withSocketsDo $ do
-	--args <- getArgs
+main = do
+	args <- getArgs
 	port <- return $ fromInteger 60000
 	server <- newServer
 	sock <- listenOn (PortNumber port)
@@ -71,11 +71,20 @@ sendMessage Client{..} msg = writeTChan clientSendChan msg
 broadcast :: Server ->  Message -> STM ()
 broadcast server msg = broadcast' server Nothing msg
 
-
-broadcast' :: Server -> Maybe Client -> Message -> STM ()
-broadcast' Server{..} _ msg = do
+broadcast' :: Server -> Maybe (Either ClientName ClientName) -> Message -> STM ()
+broadcast' Server{..} clt msg = do
 	clientmap <- readTVar clients
-	mapM_ (\client -> sendMessage client msg) (Map.elems clientmap)
+	mapM_ (\client -> sendMessage client msg) (Map.elems $ someFilt clt clientmap)
+ 	where
+		someFilt Nothing b = b
+		someFilt (Just (Left a)) b = Map.filterWithKey (\k _ -> k /= a) b
+		someFilt (Just (Right a)) b = Map.filterWithKey (\k _ -> k == a) b
+
+broadcastWithout :: Server -> ClientName -> Message -> STM ()
+broadcastWithout server name msg = broadcast' server (Just (Left name)) msg
+
+broadcastTo :: Server -> ClientName -> Message -> STM ()
+broadcastTo server name msg = broadcast' server (Just (Right name)) msg
 
 checkAddClient :: Server -> ClientName -> Handle -> IO (Maybe Client)
 checkAddClient server@Server{..} name handle = atomically $ do
@@ -145,9 +154,9 @@ handleMessage server client@Client{..} message =
 				{-["/kick", who] -> do
 					atomically $ kick server who clientName
 					return True-}
-				{-"/tell" : who : what -> do
-					tell server client who (unwords what)
-					return True-}
+				"/tell" : who : what -> do
+					atomically $ broadcastTo server who $ Tell clientName (unwords what)
+					return True
 				["/quit"] ->
 					return False
 				('/':_):_ -> do
