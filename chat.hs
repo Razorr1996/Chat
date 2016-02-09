@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+
 module Main where
 
 import Control.Concurrent
@@ -36,7 +37,7 @@ data Message 	= Notice String
 main :: IO ()
 main = do
 	args <- getArgs
-	port <- return $ fromInteger 60000
+	port <- return $ getServ args
 	server <- newServer
 	sock <- listenOn (PortNumber port)
 	printf "Listening on port %s\n" $ show port

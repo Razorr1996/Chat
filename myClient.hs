@@ -36,3 +36,5 @@ talk hdl = do
 getServ (arg1 : [arg2]) = (arg1, fromInteger $ read arg2)
 getServ [arg1] = ("127.0.0.1", fromInteger $ read arg1)
 getServ _ = ("127.0.0.1", fromInteger 60000)
+
+changeW srt = 
