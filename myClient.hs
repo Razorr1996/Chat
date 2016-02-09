@@ -21,20 +21,24 @@ talk :: Handle -> IO ()
 talk hdl = do
 	hSetNewlineMode hdl universalNewlineMode
 	hSetBuffering hdl LineBuffering
-	_ <- race fromServer toServer
+	race fromServer toServer
 	return ()
 	where
-		fromServer = forever $ do
-			line <- hGetLine hdl
-			case line of
-				"Bye!"	-> do return ()
-				_		-> do putStrLn line
+		fromServer = do
+			eof <- hIsEOF hdl
+			if eof
+				then do
+					putStrLn "Connection closed by foreign host."
+					return ()
+				else do
+					line <- hGetLine hdl
+					putStrLn line
+					fromServer
 		toServer = forever $ do
 			line <- getLine
 			hPutStrLn hdl line
 
+getServ :: Num a => [String] -> (String, a)
 getServ (arg1 : [arg2]) = (arg1, fromInteger $ read arg2)
 getServ [arg1] = ("127.0.0.1", fromInteger $ read arg1)
 getServ _ = ("127.0.0.1", fromInteger 60000)
-
-changeW srt = 
