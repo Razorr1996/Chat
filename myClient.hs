@@ -1,16 +1,14 @@
 module Main where
 
 import Control.Concurrent.Async (race)
-import Control.Exception
-import Control.Monad (forever)
-import Data.String.Unicode
-import GHC.IO.Encoding
-import Network (withSocketsDo, PortID(..), connectTo)
-import System.Environment
+import Control.Monad.Trans (liftIO)
+import Network (PortID(..), connectTo)
+import System.Console.Haskeline
+import System.Environment (getArgs)
 import System.IO
 
 main :: IO ()
-main = withSocketsDo $ do
+main = do
 	args <- getArgs
 	(adr, port) <- return $ getServ args
 	hdl <- connectTo adr $ PortNumber port
@@ -20,25 +18,32 @@ main = withSocketsDo $ do
 talk :: Handle -> IO ()
 talk hdl = do
 	hSetNewlineMode hdl universalNewlineMode
-	hSetBuffering hdl LineBuffering
-	race fromServer toServer
+	hSetBuffering hdl NoBuffering
+	_ <- race fromServer (runInputT defaultSettings toServer)
 	return ()
-	where
+	where 
+		toServer ::  InputT IO ()
+		toServer = do
+			minput <- getInputLine ""
+			case minput of
+				Just "" -> toServer
+				Just input -> do
+					liftIO $ hPutStrLn hdl input
+					toServer
+				_ -> toServer
+		fromServer :: IO ()
 		fromServer = do
 			eof <- hIsEOF hdl
 			if eof
 				then do
-					putStrLn "Connection closed by foreign host."
+					putStrLn "Connection closed by Chat server."
 					return ()
 				else do
 					line <- hGetLine hdl
 					putStrLn line
 					fromServer
-		toServer = forever $ do
-			line <- getLine
-			hPutStrLn hdl line
 
 getServ :: Num a => [String] -> (String, a)
 getServ (arg1 : [arg2]) = (arg1, fromInteger $ read arg2)
 getServ [arg1] = ("127.0.0.1", fromInteger $ read arg1)
-getServ _ = ("127.0.0.1", fromInteger 60000)
+getServ _ = ("127.0.0.1", 60000)
